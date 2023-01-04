@@ -10,6 +10,13 @@
 
 package main
 
+import (
+	"sync"
+	"time"
+)
+
+var reqTime sync.Map
+
 // User defines the UserModel. Use this to check whether a User is a
 // Premium user or not
 type User struct {
@@ -21,7 +28,20 @@ type User struct {
 // HandleRequest runs the processes requested by users. Returns false
 // if process had to be killed
 func HandleRequest(process func(), u *User) bool {
+	before := time.Now()
 	process()
+	diff := time.Since(before)
+	val, ok := reqTime.Load(u.ID)	
+	if (!ok) {
+		reqTime.Store(u.ID, diff)
+	} else {
+		tTimeDuration := val.(time.Duration)
+		if (tTimeDuration+diff >= 10*time.Second) {
+			return false
+		} else {
+			reqTime.Store(u.ID, tTimeDuration+diff)
+		}
+	} 
 	return true
 }
 
